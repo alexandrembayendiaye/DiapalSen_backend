@@ -1,0 +1,12 @@
+# Requirements pour l'environnement de production (Heroku)
+-r base.txt
+
+# Production-specific packages
+gunicorn==21.2.0              # Serveur WSGI pour production
+whitenoise==6.6.0             # Gestion fichiers statiques
+dj-database-url==2.1.0        # Parse DATABASE_URL (Heroku)
+django-redis==5.4.0           # Cache Redis
+sentry-sdk==1.38.0            # Monitoring d'erreurs
+django-storages==1.14.2       # Stockage fichiers (AWS S3)
+boto3==1.34.0                 # AWS SDK (pour S3)
+django-environ==0.11.2        # Variables d'environnement
