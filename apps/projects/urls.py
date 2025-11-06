@@ -21,4 +21,18 @@ urlpatterns = [
         views.CategorieAdminDetailView.as_view(),
         name="admin-categories-detail",
     ),
+    # APIs projets publiques
+    path("", views.ProjetListView.as_view(), name="projets-list"),
+    path("<int:pk>/", views.ProjetDetailView.as_view(), name="projets-detail"),
+    # APIs projets porteur
+    path("create/", views.ProjetCreateView.as_view(), name="projets-create"),
+    path("mes-projets/", views.MesProjetsListView.as_view(), name="mes-projets"),
+    path("edit/<int:pk>/", views.ProjetUpdateView.as_view(), name="projets-edit"),
+    path("<int:pk>/soumettre/", views.soumettre_projet_view, name="projets-soumettre"),
+    # APIs admin projets
+    path(
+        "admin/en-attente/",
+        views.ProjetAdminListView.as_view(),
+        name="admin-projets-attente",
+    ),
 ]
