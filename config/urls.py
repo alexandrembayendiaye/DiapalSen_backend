@@ -30,6 +30,7 @@ urlpatterns = [
     path("api/projects/", include("apps.projects.urls")),
     # 📘 Documentation API (Swagger + Redoc)
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/contributions/", include("apps.contributions.urls")),
     path(
         "api/docs/",
         SpectacularSwaggerView.as_view(url_name="schema"),
