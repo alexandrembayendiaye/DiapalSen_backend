@@ -1,0 +1,39 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Projet validé !{% endblock %}
+
+{% block content %}
+<h2>🎉 Félicitations ! Votre projet est validé !</h2>
+
+<p>Bonjour {{ projet.porteur.first_name }},</p>
+
+<p>Excellente nouvelle ! Votre projet <strong>"{{ projet.titre }}"</strong> vient d'être approuvé par notre équipe.</p>
+
+<div style="background: #f0fdf4; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #22c55e;">
+    <h3>✅ Détails de la validation :</h3>
+    <ul>
+        <li><strong>Type de financement :</strong> {{ projet.get_type_financement_display }}</li>
+        <li><strong>Objectif :</strong> {{ projet.montant_objectif|floatformat:0 }} FCFA</li>
+        <li><strong>Durée :</strong> {{ projet.duree_campagne_jours }} jours</li>
+        <li><strong>Date de fin :</strong> {{ projet.date_fin_campagne|date:"d/m/Y" }}</li>
+    </ul>
+    {% if projet.commentaire_admin_financement %}
+    <p><strong>Commentaire de l'équipe :</strong> {{ projet.commentaire_admin_financement }}</p>
+    {% endif %}
+</div>
+
+<div style="background: #fef3c7; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3>🚀 Votre campagne est maintenant ACTIVE !</h3>
+    <p>Votre projet est désormais visible par tous les utilisateurs de DiapalSen. Il est temps de :</p>
+    <ul>
+        <li>📢 Partager votre projet sur les réseaux sociaux</li>
+        <li>👨‍👩‍👧‍👦 Mobiliser votre réseau (famille, amis, collègues)</li>
+        <li>📝 Publier des mises à jour régulières</li>
+        <li>💬 Répondre aux commentaires des contributeurs</li>
+    </ul>
+</div>
+
+<a href="http://127.0.0.1:8000/projets/{{ projet.id }}" class="button">Voir mon projet en ligne</a>
+
+<p>Nous vous souhaitons plein succès dans votre campagne ! 🌟</p>
+{% endblock %}

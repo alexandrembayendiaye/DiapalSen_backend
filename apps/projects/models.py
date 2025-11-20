@@ -349,3 +349,70 @@ class ValidationProjet(models.Model):
 
     def __str__(self):
         return f"{self.projet.titre} - {self.get_decision_display()} par {self.administrateur.get_full_name()}"  # type: ignore
+
+
+class MiseAJourProjet(models.Model):
+    """
+    Modèle pour les mises à jour publiées par les porteurs de projet
+    """
+
+    VISIBILITE_CHOICES = [
+        ("public", "Public (visible par tous)"),
+        ("contributeurs", "Contributeurs uniquement"),
+    ]
+
+    projet = models.ForeignKey(
+        Projet,
+        on_delete=models.CASCADE,
+        related_name="mises_a_jour",
+        help_text="Projet concerné par la mise à jour",
+    )
+
+    auteur = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="mises_a_jour_publiees",
+        help_text="Auteur de la mise à jour (normalement le porteur)",
+    )
+
+    titre = models.CharField(max_length=200, help_text="Titre de la mise à jour")
+
+    contenu = models.TextField(help_text="Contenu détaillé de la mise à jour")
+
+    images = models.ImageField(
+        upload_to="mises_a_jour/",
+        blank=True,
+        null=True,
+        help_text="Images illustrant la mise à jour",
+    )
+
+    visibilite = models.CharField(
+        max_length=20,
+        choices=VISIBILITE_CHOICES,
+        default="public",
+        help_text="Qui peut voir cette mise à jour",
+    )
+
+    date_publication = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Mise à jour de projet"
+        verbose_name_plural = "Mises à jour de projets"
+        ordering = ["-date_publication"]
+
+    def __str__(self):
+        return f"Mise à jour: {self.titre} - {self.projet.titre}"
+
+    @property  # type: ignore
+    def peut_voir(self, utilisateur):
+        """Détermine si un utilisateur peut voir cette mise à jour"""
+        if self.visibilite == "public":
+            return True
+        elif self.visibilite == "contributeurs":
+            # Vérifier si l'utilisateur a contribué au projet
+            from apps.contributions.models import Contribution
+
+            return Contribution.objects.filter(
+                projet=self.projet, contributeur=utilisateur, statut_paiement="valide"
+            ).exists()
+        return False

@@ -334,3 +334,234 @@ def historique_validations_view(request):
     serializer = ValidationProjetSerializer(validations, many=True)
 
     return Response({"validations": serializer.data, "total": validations.count()})
+
+
+class MonProjetDetailView(generics.RetrieveAPIView):
+    """
+    API pour qu'un porteur accède aux détails de SES projets
+    (peu importe le statut)
+    """
+
+    serializer_class = ProjetDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Le porteur peut voir tous SES projets
+        return Projet.objects.filter(porteur=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Pas d'incrémentation de vues pour le porteur
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_image_view(request, pk):
+    """
+    API pour upload d'image principale d'un projet
+    Accessible seulement au porteur du projet
+    """
+    try:
+        # Récupérer le projet (seulement si c'est le porteur)
+        projet = Projet.objects.get(pk=pk, porteur=request.user)
+
+        # Vérifier qu'il y a une image dans la requête
+        if "image_principale" not in request.FILES:
+            return Response(
+                {"error": "Aucune image fournie"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Sauvegarder l'image
+        projet.image_principale = request.FILES["image_principale"]
+        projet.save(update_fields=["image_principale"])
+
+        return Response(
+            {
+                "message": "Image uploadée avec succès",
+                "image_url": (
+                    projet.image_principale.url if projet.image_principale else None
+                ),
+                "projet_id": projet.id,  # type: ignore
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Projet.DoesNotExist:
+        return Response(
+            {"error": "Projet non trouvé ou vous n'êtes pas le porteur"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Erreur lors de l'upload: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+# ✅ NOUVELLES VUES À AJOUTER dans votre fichier projets/views.py
+# Ajoutez ces imports en haut du fichier si pas déjà présents :
+
+from django.db.models import Count, Sum, Q
+from django.contrib.auth import get_user_model
+from datetime import datetime, timedelta
+
+User = get_user_model()
+
+# ✅ AJOUTEZ CETTE VUE À LA FIN DE votre fichier views.py :
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])  # TODO: Changer en IsAdminUser plus tard
+def admin_stats_view(request):
+    """
+    API pour les statistiques globales de la plateforme (Dashboard Admin)
+    """
+    # Vérification admin (temporaire - à améliorer)
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Seuls les administrateurs peuvent accéder aux statistiques"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # 📊 STATISTIQUES PROJETS
+    projets_stats = {
+        "total": Projet.objects.count(),
+        "en_attente": Projet.objects.filter(statut="en_attente").count(),
+        "actifs": Projet.objects.filter(statut="actif").count(),
+        "finances": Projet.objects.filter(statut="finance").count(),
+        "rejetes": Projet.objects.filter(statut="rejete").count(),
+    }
+
+    # 👥 STATISTIQUES UTILISATEURS
+    users_stats = {
+        "total": User.objects.count(),
+        "contributeurs": User.objects.filter(type_utilisateur="contributeur").count(),
+        "porteurs": User.objects.filter(type_utilisateur="porteur").count(),
+        "admins": User.objects.filter(type_utilisateur="admin").count(),
+        "nouveaux_30j": User.objects.filter(
+            date_joined__gte=timezone.now() - timedelta(days=30)
+        ).count(),
+    }
+
+    # 💰 STATISTIQUES FINANCIÈRES (si vous avez le modèle Contribution)
+    try:
+        from apps.contributions.models import Contribution
+
+        contributions_stats = {
+            "total_contributions": Contribution.objects.filter(
+                statut_paiement="confirme"
+            ).count(),
+            "montant_total": Contribution.objects.filter(
+                statut_paiement="confirme"
+            ).aggregate(total=Sum("montant"))["total"]
+            or 0,
+            "contributions_30j": Contribution.objects.filter(
+                date_contribution__gte=timezone.now() - timedelta(days=30),
+                statut_paiement="confirme",
+            ).count(),
+        }
+    except ImportError:
+        # Si le modèle Contribution n'existe pas encore
+        contributions_stats = {
+            "total_contributions": 0,
+            "montant_total": 0,
+            "contributions_30j": 0,
+        }
+
+    # 🎯 STATISTIQUES CATÉGORIES
+    categories_populaires = (
+        Categorie.objects.filter(est_active=True)
+        .annotate(nb_projets=Count("projet"))
+        .order_by("-nb_projets")[:5]
+    )
+
+    # 📈 PROJETS RÉCENTS EN ATTENTE (pour action rapide)
+    projets_en_attente = Projet.objects.filter(statut="en_attente").order_by(
+        "date_soumission"
+    )[:5]
+
+    # 🔔 CONSTRUIRE LA RÉPONSE
+    stats_data = {
+        "projets": projets_stats,
+        "utilisateurs": users_stats,
+        "contributions": contributions_stats,
+        "categories_populaires": [
+            {
+                "nom": cat.nom,
+                "icone": cat.icone,
+                "nb_projets": cat.nb_projets,  # type: ignore
+            }
+            for cat in categories_populaires
+        ],
+        "projets_en_attente": ProjetListSerializer(projets_en_attente, many=True).data,
+        "derniere_mise_a_jour": timezone.now().isoformat(),
+    }
+
+    return Response({"stats": stats_data}, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])  # TODO: Changer en IsAdminUser plus tard
+def admin_users_list_view(request):
+    """
+    API pour lister tous les utilisateurs (Gestion Admin)
+    """
+    # Vérification admin
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Accès admin requis"}, status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Filtres optionnels
+    type_utilisateur = request.GET.get("type", None)
+    statut = request.GET.get("statut", None)
+
+    queryset = User.objects.all().order_by("-date_joined")
+
+    if type_utilisateur:
+        queryset = queryset.filter(type_utilisateur=type_utilisateur)
+
+    if statut:
+        queryset = queryset.filter(statut_compte=statut)
+
+    # Pagination simple
+    page = int(request.GET.get("page", 1))
+    per_page = 20
+    start = (page - 1) * per_page
+    end = start + per_page
+
+    users = queryset[start:end]
+    total = queryset.count()
+
+    # Sérialiser les données utilisateurs (version admin)
+    users_data = []
+    for user in users:
+        users_data.append(
+            {
+                "id": user.id,  # type: ignore
+                "email": user.email,
+                "nom_complet": user.get_full_name(),
+                "username": user.username,
+                "type_utilisateur": user.type_utilisateur,  # type: ignore
+                "region": user.region,  # type: ignore
+                "ville": user.ville,  # type: ignore
+                "statut_compte": user.statut_compte,  # type: ignore
+                "date_inscription": user.date_joined,
+                "derniere_connexion": user.date_derniere_connexion,  # type: ignore
+                "is_active": user.is_active,
+            }
+        )
+
+    return Response(
+        {
+            "users": users_data,
+            "pagination": {
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": (total + per_page - 1) // per_page,
+            },
+        }
+    )

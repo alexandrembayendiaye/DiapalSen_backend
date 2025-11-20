@@ -65,7 +65,7 @@ def login_view(request):
         print(f"Serializer errors: {serializer.errors}")
 
     if serializer.is_valid():
-        user = serializer.validated_data["user"]
+        user = serializer.validated_data["user"]  # type: ignore
 
         # ... reste du code
         # Mise à jour de la dernière connexion
@@ -80,7 +80,7 @@ def login_view(request):
                 "message": "Connexion réussie !",
                 "user": UserProfileSerializer(user).data,
                 "tokens": {
-                    "access": str(refresh.access_token),
+                    "access": str(refresh.access_token),  # type: ignore
                     "refresh": str(refresh),
                 },
             },

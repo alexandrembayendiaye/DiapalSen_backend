@@ -40,6 +40,7 @@ class ProjetCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Projet
         fields = [
+            "id",
             "titre",
             "description_courte",
             "description_complete",

@@ -1,0 +1,38 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Bienvenue sur DiapalSen{% endblock %}
+
+{% block content %}
+<h2>🌟 Bienvenue {{ utilisateur.first_name }} !</h2>
+
+<p>Merci de rejoindre <strong>DiapalSen</strong>, la plateforme de crowdfunding qui soutient les projets sénégalais !</p>
+
+<div style="background: #f0f9ff; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3>🎯 Votre compte :</h3>
+    <ul>
+        <li><strong>Type :</strong> {{ utilisateur.get_type_utilisateur_display }}</li>
+        <li><strong>Email :</strong> {{ utilisateur.email }}</li>
+        <li><strong>Région :</strong> {{ utilisateur.get_region_display|default:"Non renseignée" }}</li>
+    </ul>
+</div>
+
+{% if utilisateur.type_utilisateur == 'porteur' %}
+<p>En tant que <strong>porteur de projet</strong>, vous pouvez maintenant :</p>
+<ul>
+    <li>✨ Créer votre premier projet</li>
+    <li>📝 Le soumettre pour validation</li>
+    <li>💰 Collecter des fonds auprès de la communauté</li>
+</ul>
+<a href="http://127.0.0.1:8000/projets/creer" class="button">Créer mon projet</a>
+{% else %}
+<p>En tant que <strong>contributeur</strong>, vous pouvez maintenant :</p>
+<ul>
+    <li>🔍 Découvrir des projets inspirants</li>
+    <li>💪 Soutenir les initiatives qui vous tiennent à cœur</li>
+    <li>❤️ Mettre vos projets favoris en favoris</li>
+</ul>
+<a href="http://127.0.0.1:8000/projets" class="button">Découvrir les projets</a>
+{% endif %}
+
+<p>L'équipe DiapalSen 🇸🇳</p>
+{% endblock %}

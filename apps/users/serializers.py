@@ -70,8 +70,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "date_joined",
             "date_derniere_connexion",
             "statut_compte",
+            # ✅ AJOUTEZ CES DEUX LIGNES :
+            "is_superuser",
+            "is_staff",
         )
-        read_only_fields = ("id", "email", "date_joined", "statut_compte")
+        read_only_fields = (
+            "id",
+            "email",
+            "date_joined",
+            "statut_compte",
+            "is_superuser",
+            "is_staff",
+        )
 
 
 class UserLoginSerializer(serializers.Serializer):
