@@ -124,3 +124,57 @@ class Contribution(models.Model):
         if self.est_anonyme:
             return "Contributeur anonyme"
         return self.contributeur.get_full_name()
+
+    def generer_recu(self):
+        """Génère le reçu PDF pour cette contribution"""
+        from .services import PDFService
+
+        if self.statut_paiement == "valide" and not self.recu_pdf:
+            try:
+                PDFService.generer_recu_pdf(self)
+                return True
+            except Exception as e:
+                print(f"Erreur génération PDF: {e}")
+                return False
+        return False
+
+    def envoyer_recu_email(self):
+        """Envoie le reçu PDF par email au contributeur"""
+        from django.core.mail import EmailMessage
+        from django.template.loader import render_to_string
+
+        if not self.recu_pdf:
+            return False
+
+        try:
+            # Préparer le contexte pour le template email
+            context = {
+                "contributeur": self.contributeur,
+                "contribution": self,
+                "projet": self.projet,
+            }
+
+            # Générer le contenu HTML de l'email
+            html_content = render_to_string("emails/email_recu.html", context)
+
+            # Créer l'email
+            email = EmailMessage(
+                subject=f"Reçu de contribution - {self.projet.titre}",
+                body=html_content,
+                from_email="noreply@diapalsen.com",
+                to=[self.contributeur.email],
+            )
+            email.content_subtype = "html"
+
+            # Attacher le PDF
+            if self.recu_pdf:
+                email.attach_file(self.recu_pdf.path)
+
+            # Envoyer
+            email.send()
+            return True
+
+        except Exception as e:
+            print(f"Erreur envoi email: {e}")
+            return False
+
