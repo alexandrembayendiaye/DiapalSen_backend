@@ -102,6 +102,11 @@ class Contribution(models.Model):
         verbose_name = "Contribution"
         verbose_name_plural = "Contributions"
         ordering = ["-date_contribution"]
+        indexes = [
+            models.Index(fields=["projet", "statut_paiement"], name="contrib_projet_statut_idx"),
+            models.Index(fields=["contributeur", "-date_contribution"], name="contrib_user_date_idx"),
+            models.Index(fields=["statut_paiement", "-date_contribution"], name="contrib_statut_date_idx"),
+        ]
 
     def __str__(self):
         anonyme = " (anonyme)" if self.est_anonyme else ""

@@ -61,6 +61,11 @@ class Commentaire(models.Model):
         verbose_name = "Commentaire"
         verbose_name_plural = "Commentaires"
         ordering = ["date_creation"]
+        indexes = [
+            models.Index(fields=["projet", "date_creation"], name="comment_projet_date_idx"),
+            models.Index(fields=["auteur", "-date_creation"], name="comment_auteur_date_idx"),
+            models.Index(fields=["est_signale", "est_masque"], name="comment_moderation_idx"),
+        ]
 
     def __str__(self):
         if self.commentaire_parent:
@@ -237,6 +242,10 @@ class Signalement(models.Model):
         ordering = ["-date_signalement"]
         # Un utilisateur ne peut signaler le même objet qu'une fois
         unique_together = ["auteur", "type_signalement", "objet_signale_id"]
+        indexes = [
+            models.Index(fields=["statut", "-date_signalement"], name="signal_statut_date_idx"),
+            models.Index(fields=["type_signalement", "objet_signale_id"], name="signal_type_obj_idx"),
+        ]
 
     def __str__(self):
         return f"Signalement {self.get_motif_display()} par {self.auteur.get_full_name()}"  # type: ignore

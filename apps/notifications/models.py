@@ -81,6 +81,10 @@ class Notification(models.Model):
         verbose_name = "Notification"
         verbose_name_plural = "Notifications"
         ordering = ["-date_creation"]
+        indexes = [
+            models.Index(fields=["destinataire", "est_lue", "-date_creation"], name="notif_user_lue_date_idx"),
+            models.Index(fields=["type_notification", "-date_creation"], name="notif_type_date_idx"),
+        ]
 
     def __str__(self):
         status = " ✓" if self.est_lue else ""

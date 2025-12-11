@@ -257,6 +257,13 @@ class Projet(models.Model):
         verbose_name = "Projet"
         verbose_name_plural = "Projets"
         ordering = ["-date_creation"]
+        indexes = [
+            models.Index(fields=["statut", "-date_creation"], name="projet_statut_date_idx"),
+            models.Index(fields=["region", "categorie"], name="projet_region_cat_idx"),
+            models.Index(fields=["porteur", "statut"], name="projet_porteur_statut_idx"),
+            models.Index(fields=["categorie", "statut"], name="projet_cat_statut_idx"),
+            models.Index(fields=["-date_debut_campagne"], name="projet_debut_camp_idx"),
+        ]
 
     def __str__(self):
         return f"{self.titre} - {self.get_statut_display()}"  # pyright: ignore[reportAttributeAccessIssue]
@@ -403,7 +410,6 @@ class MiseAJourProjet(models.Model):
     def __str__(self):
         return f"Mise à jour: {self.titre} - {self.projet.titre}"
 
-    @property  # type: ignore
     def peut_voir(self, utilisateur):
         """Détermine si un utilisateur peut voir cette mise à jour"""
         if self.visibilite == "public":
