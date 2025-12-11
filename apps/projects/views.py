@@ -565,3 +565,71 @@ def admin_users_list_view(request):
             },
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def projet_stats_view(request, projet_id):
+    """
+    API pour récupérer les statistiques détaillées d'un projet
+    Accessible uniquement au porteur du projet
+    """
+    # Récupérer le projet et vérifier que l'utilisateur est le porteur
+    projet = get_object_or_404(Projet, id=projet_id, porteur=request.user)
+    
+    # Récupérer les stats depuis les modèles existants
+    from apps.interactions.models import Commentaire, Favori, Partage
+    
+    # Partages par plateforme
+    partages_data = {}
+    plateformes = ['facebook', 'twitter', 'whatsapp', 'linkedin']
+    for plateforme in plateformes:
+        count = Partage.objects.filter(
+            projet=projet, 
+            plateforme=plateforme
+        ).count()
+        if count > 0:
+            partages_data[plateforme] = count
+    
+    stats = {
+        # Vues (déjà dans le modèle)
+        'vues': projet.nombre_vues or 0,
+        
+        # Partages par plateforme
+        'partages': partages_data,
+        
+        # Commentaires (non masqués)
+        'commentaires': Commentaire.objects.filter(
+            projet=projet,
+            est_masque=False
+        ).count(),
+        
+        # Favoris
+        'favoris': Favori.objects.filter(projet=projet).count(),
+    }
+    
+    return Response(stats, status=status.HTTP_200_OK)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def upload_document_view(request, pk):
+    """Upload document budget ou business plan"""
+    try:
+        projet = Projet.objects.get(pk=pk, porteur=request.user)
+        
+        if 'document_budget' in request.FILES:
+            projet.document_budget = request.FILES['document_budget']
+        
+        if 'document_business_plan' in request.FILES:
+            projet.document_business_plan = request.FILES['document_business_plan']
+        
+        projet.save()
+        
+        serializer = ProjetDetailSerializer(projet)
+        return Response(serializer.data)
+    except Projet.DoesNotExist:
+        return Response(
+            {'error': 'Projet non trouvé ou vous n\'êtes pas le porteur'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+

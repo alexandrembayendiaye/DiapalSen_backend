@@ -169,3 +169,55 @@ def user_dashboard_view(request):
     }
 
     return Response(dashboard_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_stats_view(request):
+    """
+    API pour récupérer les statistiques de l'utilisateur connecté
+    Utilisé pour la section "Mon activité" du dashboard
+    """
+    user = request.user
+    
+    # Initialiser les stats
+    stats = {
+        "projets_crees": 0,
+        "projets_finances": 0,
+        "projets_en_cours": 0,
+        "contributions": 0,
+        "projets_soutenus": 0,
+        "montant_total_contribue": 0,
+        "notifications_non_lues": 0
+    }
+    
+    # Stats pour PORTEUR
+    if user.type_utilisateur in ["porteur", "admin"]:
+        from apps.projects.models import Projet
+        
+        mes_projets = Projet.objects.filter(porteur=user)
+        stats["projets_crees"] = mes_projets.count()
+        stats["projets_finances"] = mes_projets.filter(statut="finance").count()
+        stats["projets_en_cours"] = mes_projets.filter(statut="actif").count()
+    
+    # Stats pour CONTRIBUTEUR
+    if user.type_utilisateur in ["contributeur", "admin"]:
+        from apps.contributions.models import Contribution
+        
+        mes_contributions = Contribution.objects.filter(
+            contributeur=user,
+            statut_paiement="valide"
+        )
+        stats["contributions"] = mes_contributions.count()
+        stats["projets_soutenus"] = mes_contributions.values("projet").distinct().count()
+        stats["montant_total_contribue"] = sum(c.montant for c in mes_contributions)
+    
+    # Notifications non lues (pour tous)
+    from apps.notifications.models import Notification
+    stats["notifications_non_lues"] = Notification.objects.filter(
+        destinataire=user,
+        est_lue=False
+    ).count()
+    
+    return Response(stats, status=status.HTTP_200_OK)
+

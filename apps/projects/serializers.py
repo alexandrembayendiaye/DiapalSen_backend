@@ -123,8 +123,11 @@ class ProjetDetailSerializer(serializers.ModelSerializer):
             "region",
             "ville",
             "type_financement",
+            "duree_campagne_jours",
             "date_debut_campagne",
             "date_fin_campagne",
+            "document_budget",
+            "document_business_plan",
             "nombre_vues",
             "date_creation",
         ]
@@ -148,19 +151,63 @@ class ProjetUpdateSerializer(serializers.ModelSerializer):
             "titre",
             "description_courte",
             "description_complete",
+            "categorie",
+            "montant_objectif",
+            "type_financement",
+            "region",
+            "ville",
             "image_principale",
             "video_url",
             "document_budget",
             "document_business_plan",
+            "date_debut_campagne",
+            "date_fin_campagne",
         ]
 
-    def validate(self, attrs):
-        # Un projet ne peut être modifié que s'il est en brouillon
-        if self.instance and self.instance.statut not in ["brouillon"]:
+    def validate(self, data):
+        """Validation selon le statut du projet"""
+        projet = self.instance
+        
+        if not projet:
+            return data
+        
+        # Projets terminés ou rejetés : aucune modification
+        if projet.statut in ['termine', 'rejete']:
             raise serializers.ValidationError(
-                "Un projet ne peut être modifié qu'en statut brouillon."
+                "Ce projet ne peut plus être modifié (statut: {})".format(projet.statut)
             )
-        return attrs
+        
+        # Projet actif : seulement description complète et vidéo
+        if projet.statut == 'actif':
+            champs_autorises = {'description_complete', 'video_url'}
+            champs_modifies = set(data.keys())
+            champs_interdits = champs_modifies - champs_autorises
+            
+            if champs_interdits:
+                raise serializers.ValidationError({
+                    list(champs_interdits)[0]: 
+                    f"Ce champ ne peut pas être modifié pour un projet actif. "
+                    f"Seuls 'description_complete' et 'video_url' sont modifiables."
+                })
+        
+        # Projet en attente : champs limités
+        elif projet.statut == 'en_attente':
+            champs_interdits = {
+                'titre', 'montant_objectif', 'categorie', 
+                'date_debut_campagne', 'date_fin_campagne', 'type_financement'
+            }
+            champs_modifies = set(data.keys())
+            champs_non_autorises = champs_modifies & champs_interdits
+            
+            if champs_non_autorises:
+                raise serializers.ValidationError({
+                    list(champs_non_autorises)[0]: 
+                    f"Ce champ ne peut pas être modifié pour un projet en attente de validation."
+                })
+        
+        # Brouillon : tous les champs modifiables (pas de restriction)
+        
+        return data
 
 
 from .models import ValidationProjet

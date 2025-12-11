@@ -36,6 +36,7 @@ urlpatterns = [
     path("edit/<int:pk>/", views.ProjetUpdateView.as_view(), name="projets-edit"),
     path("<int:pk>/soumettre/", views.soumettre_projet_view, name="projets-soumettre"),
     path("<int:pk>/upload-image/", views.upload_image_view, name="upload-image"),
+    path("<int:pk>/upload-document/", views.upload_document_view, name="upload-document"),
     # APIs admin projets
     path(
         "admin/en-attente/",
@@ -65,4 +66,11 @@ urlpatterns = [
         views_updates.MisesAJourProjetListView.as_view(),
         name="mises-a-jour-projet",
     ),
+    # Stats projet (pour le porteur)
+    path(
+        "<int:projet_id>/stats/",
+        views.projet_stats_view,
+        name="projet-stats",
+    ),
 ]
+
