@@ -40,9 +40,11 @@ class ContributionCreateSerializer(serializers.ModelSerializer):
 class ContributionListSerializer(serializers.ModelSerializer):
     """Serializer pour lister les contributions d'un projet"""
 
+    contributeur_id = serializers.IntegerField(source="contributeur.id", read_only=True)
     contributeur_nom = serializers.CharField(
         source="contributeur_nom_affiche", read_only=True
     )
+    contributeur_email = serializers.EmailField(source="contributeur.email", read_only=True)
     moyen_paiement_display = serializers.CharField(
         source="get_moyen_paiement_display", read_only=True
     )
@@ -53,7 +55,9 @@ class ContributionListSerializer(serializers.ModelSerializer):
             "id",
             "montant",
             "message_soutien",
+            "contributeur_id",
             "contributeur_nom",
+            "contributeur_email",
             "moyen_paiement_display",
             "date_contribution",
             "est_anonyme",

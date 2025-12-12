@@ -55,8 +55,21 @@ def contribuer_projet_view(request, projet_id):
         if resultat_paiement["succes"]:
             # Mise à jour du projet
             projet.montant_collecte += contribution.montant  # type: ignore
-            projet.nombre_contributeurs += 1
-            projet.save(update_fields=["montant_collecte", "nombre_contributeurs"])
+            
+            # Vérifier si c'est la première contribution de cet utilisateur
+            from .models import Contribution as ContributionModel
+            nb_contributions_existantes = ContributionModel.objects.filter(
+                projet=projet,
+                contributeur=contribution.contributeur,
+                statut_paiement="valide"
+            ).exclude(id=contribution.id).count()
+            
+            # N'incrémenter que si c'est un nouveau contributeur
+            if nb_contributions_existantes == 0:
+                projet.nombre_contributeurs += 1
+                projet.save(update_fields=["montant_collecte", "nombre_contributeurs"])
+            else:
+                projet.save(update_fields=["montant_collecte"])
 
             # Générer le reçu PDF
             recu_pdf = generer_recu_pdf(contribution)
@@ -157,3 +170,69 @@ def statistiques_contributions_view(request):
         }
 
     return Response(stats)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def mes_contributeurs_view(request):
+    """
+    API pour récupérer tous les contributeurs de tous les projets du porteur connecté
+    """
+    # Récupérer tous les projets du porteur
+    mes_projets = Projet.objects.filter(porteur=request.user)
+    
+    # Récupérer toutes les contributions validées pour ces projets
+    contributions = Contribution.objects.filter(
+        projet__in=mes_projets,
+        statut_paiement="valide"
+    ).select_related('contributeur', 'projet').order_by("-date_contribution")
+    
+    # Grouper par contributeur
+    contributeurs_dict = {}
+    for contrib in contributions:
+        contributeur_id = contrib.contributeur.id
+        if contributeur_id not in contributeurs_dict:
+            contributeurs_dict[contributeur_id] = {
+                "id": contributeur_id,
+                "nom_complet": contrib.contributeur.get_full_name() or "Anonyme",
+                "email": contrib.contributeur.email,
+                "contributions": [],
+                "total_contribution": 0,
+                "nombre_contributions": 0,
+                "projets_soutenus": set()
+            }
+        
+        contributeurs_dict[contributeur_id]["contributions"].append({
+            "id": contrib.id,
+            "projet_id": contrib.projet.id,
+            "projet_titre": contrib.projet.titre,
+            "montant": float(contrib.montant),
+            "date_contribution": contrib.date_contribution,
+            "message_soutien": contrib.message_soutien
+        })
+        contributeurs_dict[contributeur_id]["total_contribution"] += float(contrib.montant)
+        contributeurs_dict[contributeur_id]["nombre_contributions"] += 1
+        contributeurs_dict[contributeur_id]["projets_soutenus"].add(contrib.projet.titre)
+    
+    # Convertir en liste et formater
+    contributeurs_list = []
+    for contrib_data in contributeurs_dict.values():
+        contrib_data["projets_soutenus"] = list(contrib_data["projets_soutenus"])
+        contributeurs_list.append(contrib_data)
+    
+    # Trier par montant total décroissant
+    contributeurs_list.sort(key=lambda x: x["total_contribution"], reverse=True)
+    
+    # Stats globales
+    stats = {
+        "total_contributeurs": len(contributeurs_list),
+        "total_contributions": sum(c["nombre_contributions"] for c in contributeurs_list),
+        "montant_total": sum(c["total_contribution"] for c in contributeurs_list),
+        "montant_moyen": sum(c["total_contribution"] for c in contributeurs_list) / len(contributeurs_list) if contributeurs_list else 0
+    }
+    
+    return Response({
+        "contributeurs": contributeurs_list,
+        "stats": stats
+    })
+

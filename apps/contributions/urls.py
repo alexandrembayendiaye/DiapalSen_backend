@@ -29,4 +29,10 @@ urlpatterns = [
         views.statistiques_contributions_view,
         name="stats-contributions",
     ),
+    # Contributeurs du porteur
+    path(
+        "mes-contributeurs/",
+        views.mes_contributeurs_view,
+        name="mes-contributeurs",
+    ),
 ]
