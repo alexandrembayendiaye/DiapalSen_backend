@@ -13,6 +13,7 @@ class Notification(models.Model):
         # Notifications porteur
         ("projet_valide", "Projet validé"),
         ("projet_rejete", "Projet rejeté"),
+        ("infos_demandees", "Modification demandée"),
         ("nouvelle_contribution", "Nouvelle contribution reçue"),
         ("commentaire_projet", "Nouveau commentaire sur votre projet"),
         ("objectif_atteint", "Objectif de financement atteint"),
@@ -21,6 +22,8 @@ class Notification(models.Model):
         ("contribution_confirmee", "Contribution confirmée"),
         ("mise_a_jour_projet", "Mise à jour de projet suivi"),
         ("projet_finance", "Projet soutenu financé"),
+        # Notifications admin
+        ("projet_soumis", "Nouveau projet à valider"),
         # Notifications générales
         ("favori_nouveau_projet", "Nouveau projet dans catégorie favorite"),
         ("rappel_projet", "Rappel projet bientôt terminé"),

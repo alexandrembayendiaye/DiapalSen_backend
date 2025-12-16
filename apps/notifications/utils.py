@@ -28,31 +28,52 @@ def creer_notification(
 # Fonctions spécifiques par type de notification
 
 
-def notifier_projet_valide(projet):
+def notifier_projet_valide(projet, commentaire_admin=""):
     """Notifie le porteur que son projet est validé"""
+    contenu = f"Félicitations ! Votre projet a été approuvé avec le type de financement '{projet.get_type_financement_display()}'. Votre campagne est maintenant active."
+    if commentaire_admin:
+        contenu += f"\n\nMessage de l'administrateur :\n{commentaire_admin}"
+
     creer_notification(
         destinataire=projet.porteur,
         type_notification="projet_valide",
         titre=f"🎉 Votre projet '{projet.titre}' a été validé !",
-        contenu=f"Félicitations ! Votre projet a été approuvé avec le type de financement '{projet.get_type_financement_display()}'. Votre campagne est maintenant active.",
+        contenu=contenu,
         lien_action=f"/projets/{projet.id}",
         donnees_contextuelles={
             "projet_id": projet.id,
             "type_financement": projet.type_financement,
             "montant_objectif": float(projet.montant_objectif),
+            "commentaire_admin": commentaire_admin,
         },
     )
 
 
 def notifier_projet_rejete(projet, motif):
-    """Notifie le porteur que son projet est rejeté"""
+    """Notifie le porteur que son projet est rejeté définitivement"""
     creer_notification(
         destinataire=projet.porteur,
         type_notification="projet_rejete",
         titre=f"❌ Votre projet '{projet.titre}' n'a pas été validé",
-        contenu=f"Votre projet n'a malheureusement pas pu être validé. Motif : {motif}. Vous pouvez le modifier et le soumettre à nouveau.",
-        lien_action=f"/mes-projets/{projet.id}/edit",
+        contenu=f"Votre projet n'a malheureusement pas pu être validé.\n\nMotif du rejet :\n{motif}",
+        lien_action=f"/mes-projets/{projet.id}/commentaires",
         donnees_contextuelles={"projet_id": projet.id, "motif_rejet": motif},
+    )
+
+
+def notifier_modification_demandee(projet, commentaire_admin):
+    """Notifie le porteur qu'une modification est demandée sur son projet"""
+    creer_notification(
+        destinataire=projet.porteur,
+        type_notification="infos_demandees",
+        titre=f"✏️ Modification demandée sur '{projet.titre}'",
+        contenu=f"L'administrateur a demandé des modifications sur votre projet avant de pouvoir le valider.\n\nDemande de l'administrateur :\n{commentaire_admin}\n\nVeuillez modifier votre projet et le soumettre à nouveau.",
+        lien_action=f"/mes-projets/{projet.id}/commentaires",
+        donnees_contextuelles={
+            "projet_id": projet.id,
+            "commentaire_admin": commentaire_admin,
+            "action_requise": True,
+        },
     )
 
 
@@ -80,7 +101,7 @@ def notifier_contribution_confirmee(contribution):
         type_notification="contribution_confirmee",
         titre=f"✅ Votre contribution de {contribution.montant} FCFA est confirmée",
         contenu=f"Merci ! Votre contribution au projet '{contribution.projet.titre}' a été traitée avec succès. Référence : {contribution.reference_paiement}",
-        lien_action=f"/mes-contributions/{contribution.id}",
+        lien_action=f"/mes-contributions",
         donnees_contextuelles={
             "contribution_id": contribution.id,
             "montant": float(contribution.montant),
@@ -132,3 +153,24 @@ def notifier_bienvenue(utilisateur):
         lien_action="/projets",
         donnees_contextuelles={"type_utilisateur": utilisateur.type_utilisateur},
     )
+
+
+def notifier_projet_soumis_admin(projet):
+    """Notifie les admins qu'un nouveau projet est soumis pour validation"""
+    # Récupérer tous les admins (superusers)
+    admins = User.objects.filter(is_superuser=True)
+
+    for admin in admins:
+        creer_notification(
+            destinataire=admin,
+            type_notification="projet_soumis",
+            titre=f"📋 Nouveau projet à valider: '{projet.titre}'",
+            contenu=f"Le porteur {projet.porteur.get_full_name()} a soumis le projet '{projet.titre}' pour validation. Objectif: {projet.montant_objectif} FCFA.",
+            lien_action=f"/admin/projets/{projet.id}/detail",
+            donnees_contextuelles={
+                "projet_id": projet.id,
+                "porteur_id": projet.porteur.id,
+                "porteur_nom": projet.porteur.get_full_name(),
+                "montant_objectif": float(projet.montant_objectif),
+            },
+        )

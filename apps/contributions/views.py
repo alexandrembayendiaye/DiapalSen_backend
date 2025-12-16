@@ -71,7 +71,6 @@ def contribuer_projet_view(request, projet_id):
             else:
                 projet.save(update_fields=["montant_collecte"])
 
-            # Générer le reçu PDF
             recu_pdf = generer_recu_pdf(contribution)
             contribution.recu_pdf.save(  # type: ignore
                 f"recu_{contribution.reference_paiement}.pdf",  # type: ignore
@@ -81,7 +80,37 @@ def contribuer_projet_view(request, projet_id):
 
         contribution.save()  # type: ignore
 
-        # TODO: Envoyer notifications email
+        # Créer les notifications si le paiement est validé
+        if resultat_paiement["succes"]:
+            from apps.notifications.models import Notification
+            
+            # Notification pour le contributeur
+            Notification.objects.create(
+                destinataire=contribution.contributeur,
+                type_notification="contribution_confirmee",
+                titre="Contribution confirmée !",
+                contenu=f"Votre contribution de {int(contribution.montant):,} FCFA au projet '{projet.titre}' a été validée.".replace(",", " "),
+                lien_action=f"/projets/{projet.id}",
+                donnees_contextuelles={
+                    "contribution_id": contribution.id,
+                    "montant": str(contribution.montant),
+                    "projet_id": projet.id,
+                },
+            )
+            
+            # Notification pour le porteur de projet
+            Notification.objects.create(
+                destinataire=projet.porteur,
+                type_notification="nouvelle_contribution",
+                titre="Nouvelle contribution reçue !",
+                contenu=f"{contribution.contributeur_nom_affiche} a contribué {int(contribution.montant):,} FCFA à votre projet '{projet.titre}'.".replace(",", " "),
+                lien_action=f"/mes-projets/{projet.id}/stats",
+                donnees_contextuelles={
+                    "contribution_id": contribution.id,
+                    "montant": str(contribution.montant),
+                    "contributeur": contribution.contributeur_nom_affiche,
+                },
+            )
 
         return Response(
             {

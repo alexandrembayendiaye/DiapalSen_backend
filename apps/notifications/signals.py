@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from .utils import (
     notifier_projet_valide,
     notifier_projet_rejete,
+    notifier_modification_demandee,
     notifier_nouvelle_contribution,
     notifier_contribution_confirmee,
     notifier_nouveau_commentaire,
@@ -26,12 +27,14 @@ def notification_bienvenue(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=ValidationProjet)
 def notification_validation_projet(sender, instance, created, **kwargs):
-    """Envoie des notifications lors de la validation/rejet d'un projet"""
+    """Envoie des notifications lors de la validation/rejet/demande de modification d'un projet"""
     if created:
         if instance.decision == "approuve":
-            notifier_projet_valide(instance.projet)
+            notifier_projet_valide(instance.projet, instance.commentaire)
         elif instance.decision == "rejete":
-            notifier_projet_rejete(instance.projet, instance.motif_rejet)
+            notifier_projet_rejete(instance.projet, instance.motif_rejet or instance.commentaire)
+        elif instance.decision == "infos_demandees":
+            notifier_modification_demandee(instance.projet, instance.commentaire)
 
 
 @receiver(post_save, sender=Contribution)

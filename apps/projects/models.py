@@ -93,6 +93,7 @@ class Projet(models.Model):
     STATUT_CHOICES = [
         ("brouillon", "Brouillon"),
         ("en_attente", "En attente de validation"),
+        ("modification_demandee", "Modification demandée"),
         ("rejete", "Rejeté"),
         ("actif", "Campagne active"),
         ("finance", "Financé avec succès"),
@@ -197,7 +198,7 @@ class Projet(models.Model):
 
     # Statut et validation
     statut = models.CharField(
-        max_length=20,
+        max_length=25,
         choices=STATUT_CHOICES,
         default="brouillon",
         help_text="Statut actuel du projet",

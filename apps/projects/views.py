@@ -135,6 +135,10 @@ class ProjetDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
+        # Les admins peuvent voir tous les projets
+        if self.request.user.is_authenticated and self.request.user.is_superuser:
+            return Projet.objects.all()
+        # Les visiteurs ne voient que les projets actifs
         return Projet.objects.filter(statut="actif")
 
     def retrieve(self, request, *args, **kwargs):
@@ -187,9 +191,9 @@ def soumettre_projet_view(request, pk):
         )
 
     # Vérifications avant soumission
-    if projet.statut != "brouillon":
+    if projet.statut not in ["brouillon", "modification_demandee"]:
         return Response(
-            {"error": "Seuls les projets en brouillon peuvent être soumis"},
+            {"error": "Seuls les projets en brouillon ou en modification demandée peuvent être soumis"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -202,9 +206,12 @@ def soumettre_projet_view(request, pk):
     # Soumission
     projet.statut = "en_attente"
     projet.date_soumission = timezone.now()
+    projet.motif_rejet = None  # Effacer le motif précédent
     projet.save()
 
-    # TODO: Notification à l'admin
+    # Notification aux admins
+    from apps.notifications.utils import notifier_projet_soumis_admin
+    notifier_projet_soumis_admin(projet)
 
     return Response(
         {
@@ -306,6 +313,23 @@ def valider_projet_view(request, pk):
         )
 
         message = "Projet rejeté"
+
+    elif decision == "infos_demandees":
+        # Demande de modification
+        projet.statut = "modification_demandee"
+        projet.motif_rejet = commentaire  # On utilise le commentaire comme motif
+        projet.date_validation = timezone.now()
+        projet.save()
+
+        # Enregistrement de la validation
+        validation = ValidationProjet.objects.create(
+            projet=projet,
+            administrateur=request.user,
+            decision=decision,
+            commentaire=commentaire,
+        )
+
+        message = "Modifications demandées au porteur"
 
     # TODO: Envoyer email au porteur
 

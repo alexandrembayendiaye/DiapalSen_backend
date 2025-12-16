@@ -65,11 +65,13 @@ class ProjetCreateSerializer(serializers.ModelSerializer):
 class ProjetListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des projets (vue publique)"""
 
-    porteur_nom = serializers.CharField(source="porteur.get_full_name", read_only=True)
+    porteur_nom = serializers.SerializerMethodField()
+    porteur_email = serializers.EmailField(source="porteur.email", read_only=True)
     categorie_nom = serializers.CharField(source="categorie.nom", read_only=True)
     categorie_icone = serializers.CharField(source="categorie.icone", read_only=True)
     pourcentage_atteint = serializers.ReadOnlyField()
     jours_restants = serializers.ReadOnlyField()
+    commentaire_admin = serializers.SerializerMethodField()
 
     class Meta:
         model = Projet
@@ -85,19 +87,40 @@ class ProjetListSerializer(serializers.ModelSerializer):
             "jours_restants",
             "statut",
             "porteur_nom",
+            "porteur_email",
             "categorie_nom",
             "categorie_icone",
             "region",
             "ville",
             "date_creation",
+            "date_soumission",
+            "motif_rejet",
+            "commentaire_admin",
         ]
+
+    def get_porteur_nom(self, obj):
+        """Retourne le nom complet du porteur ou son username en fallback"""
+        full_name = obj.porteur.get_full_name()
+        return full_name if full_name else obj.porteur.username
+
+    def get_commentaire_admin(self, obj):
+        """Retourne le commentaire de la dernière validation admin"""
+        from .models import ValidationProjet
+        derniere_validation = ValidationProjet.objects.filter(projet=obj).order_by('-date_validation').first()
+        if derniere_validation:
+            return derniere_validation.commentaire
+        return None
 
 
 class ProjetDetailSerializer(serializers.ModelSerializer):
     """Serializer pour le détail complet d'un projet"""
 
     porteur = serializers.SerializerMethodField()
+    porteur_nom = serializers.SerializerMethodField()
+    porteur_email = serializers.EmailField(source="porteur.email", read_only=True)
     categorie = CategorieListSerializer(read_only=True)
+    categorie_nom = serializers.CharField(source="categorie.nom", read_only=True)
+    categorie_icone = serializers.CharField(source="categorie.icone", read_only=True)
     pourcentage_atteint = serializers.ReadOnlyField()
     jours_restants = serializers.ReadOnlyField()
     est_finance = serializers.ReadOnlyField()
@@ -119,7 +142,11 @@ class ProjetDetailSerializer(serializers.ModelSerializer):
             "est_finance",
             "statut",
             "porteur",
+            "porteur_nom",
+            "porteur_email",
             "categorie",
+            "categorie_nom",
+            "categorie_icone",
             "region",
             "ville",
             "type_financement",
@@ -130,12 +157,20 @@ class ProjetDetailSerializer(serializers.ModelSerializer):
             "document_business_plan",
             "nombre_vues",
             "date_creation",
+            "date_soumission",
         ]
+
+    def get_porteur_nom(self, obj):
+        """Retourne le nom complet du porteur ou son username en fallback"""
+        full_name = obj.porteur.get_full_name()
+        return full_name if full_name else obj.porteur.username
 
     def get_porteur(self, obj):
         return {
             "id": obj.porteur.id,
-            "nom_complet": obj.porteur.get_full_name(),
+            "nom_complet": obj.porteur.get_full_name() or obj.porteur.username,
+            "email": obj.porteur.email,
+            "telephone": getattr(obj.porteur, 'telephone', None),
             "photo_profil": (
                 obj.porteur.photo_profil.url if obj.porteur.photo_profil else None
             ),
