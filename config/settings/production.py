@@ -1,6 +1,6 @@
 """
 Paramètres pour l'environnement de production
-Heroku + AWS S3 + PostgreSQL
+Heroku + Cloudinary + PostgreSQL
 """
 import os
 from .base import *
@@ -22,25 +22,16 @@ DATABASES = {
 }
 
 # ============================================================
-# AWS S3 - Stockage des fichiers médias
+# Cloudinary - Stockage des fichiers médias
 # ============================================================
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', 'diapalsen-media')
-AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-west-3')
-
-# Configuration S3
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',  # 24 heures de cache
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
-AWS_DEFAULT_ACL = 'public-read'
-AWS_S3_FILE_OVERWRITE = False
-AWS_QUERYSTRING_AUTH = False
 
-# Stockage des fichiers médias sur S3
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+# Utiliser Cloudinary pour les fichiers médias
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # ============================================================
 # Static files (WhiteNoise pour Heroku)
@@ -159,4 +150,4 @@ if SENTRY_DSN:
         traces_sample_rate=0.1,
     )
 
-print("🔒 Settings de production chargés (Heroku + S3)")
+print("🔒 Settings de production chargés (Heroku + Cloudinary)")
