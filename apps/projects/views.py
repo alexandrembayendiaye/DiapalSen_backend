@@ -391,6 +391,13 @@ def upload_image_view(request, pk):
         # Récupérer le projet (seulement si c'est le porteur)
         projet = Projet.objects.get(pk=pk, porteur=request.user)
 
+        # Bloquer l'upload pour les projets actifs ou en attente
+        if projet.statut in ["actif", "en_attente"]:
+            return Response(
+                {"error": "L'image ne peut plus être modifiée pour un projet en attente de validation ou actif"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Vérifier qu'il y a une image dans la requête
         if "image_principale" not in request.FILES:
             return Response(
@@ -693,6 +700,13 @@ def upload_document_view(request, pk):
     """Upload document budget ou business plan"""
     try:
         projet = Projet.objects.get(pk=pk, porteur=request.user)
+        
+        # Bloquer l'upload pour les projets actifs ou en attente
+        if projet.statut in ["actif", "en_attente"]:
+            return Response(
+                {'error': 'Les documents ne peuvent plus être modifiés pour un projet en attente de validation ou actif'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         if 'document_budget' in request.FILES:
             projet.document_budget = request.FILES['document_budget']

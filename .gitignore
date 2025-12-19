@@ -37,3 +37,14 @@ yarn-error.log
 
 # Heroku
 .heroku/
+
+# Tests et Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# Logs
+logs/
+*.log
