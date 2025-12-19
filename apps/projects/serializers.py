@@ -260,6 +260,7 @@ class ValidationProjetSerializer(serializers.ModelSerializer):
         model = ValidationProjet
         fields = [
             "id",
+            "projet",
             "decision",
             "type_financement_choisi",
             "commentaire",

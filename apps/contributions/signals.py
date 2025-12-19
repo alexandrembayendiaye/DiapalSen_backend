@@ -57,11 +57,13 @@ def contribution_validee_signal(sender, instance, created, **kwargs):
             )
 
             # Mettre à jour les statistiques du projet
-            projet = instance.projet
-            projet.montant_collecte += instance.montant
-            projet.nombre_contributeurs = projet.contributions.filter(
-                statut_paiement="valide"
-            ).values("contributeur").distinct().count()
-            projet.save(update_fields=["montant_collecte", "nombre_contributeurs"])
+            # NOTE: Désactivé car déjà géré dans la vue de création de contribution
+            # Cela évite le double comptage du montant_collecte
+            # projet = instance.projet
+            # projet.montant_collecte += instance.montant
+            # projet.nombre_contributeurs = projet.contributions.filter(
+            #     statut_paiement="valide"
+            # ).values("contributeur").distinct().count()
+            # projet.save(update_fields=["montant_collecte", "nombre_contributeurs"])
 
-            print(f"✅ Projet mis à jour: {projet.montant_collecte} FCFA collectés")
+            # print(f"✅ Projet mis à jour: {projet.montant_collecte} FCFA collectés")

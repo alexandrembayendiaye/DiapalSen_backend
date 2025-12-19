@@ -55,6 +55,7 @@ urlpatterns = [
     ),
     path("admin/stats/", views.admin_stats_view, name="admin-stats"),
     path("admin/users/", views.admin_users_list_view, name="admin-users"),
+    path("admin/users/<int:user_id>/", views.admin_user_update_view, name="admin-user-update"),
     # Mises à jour projets
     path(
         "<int:projet_id>/mise-a-jour/publier/",

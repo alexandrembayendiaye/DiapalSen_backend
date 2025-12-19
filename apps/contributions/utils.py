@@ -14,8 +14,8 @@ def simuler_paiement(moyen_paiement, montant, reference):
     Retourne un dictionnaire avec le résultat de la simulation
     """
 
-    # Simulation : 90% de succès, 10% d'échec
-    succes = random.random() < 0.9
+    # Simulation : 100% de succès (anciennement 90%)
+    succes = True  # random.random() < 0.9
 
     if succes:
         # Simulation des données de paiement selon le moyen

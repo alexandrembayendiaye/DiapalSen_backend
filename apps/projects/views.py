@@ -591,6 +591,59 @@ def admin_users_list_view(request):
     )
 
 
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def admin_user_update_view(request, user_id):
+    """
+    API pour modifier un utilisateur (suspension/activation)
+    Réservé aux administrateurs
+    """
+    # Vérification admin
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Accès admin requis"}, status=status.HTTP_403_FORBIDDEN
+        )
+
+    # Récupérer l'utilisateur
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {"error": "Utilisateur non trouvé"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    # On ne peut pas modifier un autre admin
+    if user.is_superuser:
+        return Response(
+            {"error": "Impossible de modifier un administrateur"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Modifier le statut du compte
+    statut_compte = request.data.get("statut_compte")
+    if statut_compte:
+        user.statut_compte = statut_compte
+        # Mettre à jour is_active en fonction du statut
+        if statut_compte == "suspendu":
+            user.is_active = False
+        elif statut_compte == "actif":
+            user.is_active = True
+
+    user.save()
+
+    return Response(
+        {
+            "message": f"Utilisateur {'activé' if user.is_active else 'suspendu'} avec succès",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "is_active": user.is_active,
+                "statut_compte": user.statut_compte,
+            },
+        }
+    )
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def projet_stats_view(request, projet_id):

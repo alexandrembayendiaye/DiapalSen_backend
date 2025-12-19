@@ -188,7 +188,12 @@ def user_stats_view(request):
         "contributions": 0,
         "projets_soutenus": 0,
         "montant_total_contribue": 0,
-        "notifications_non_lues": 0
+        "notifications_non_lues": 0,
+        # Stats admin
+        "projets_en_attente": 0,
+        "total_utilisateurs": 0,
+        "projets_actifs": 0,
+        "montant_total": 0
     }
     
     # Stats pour PORTEUR
@@ -212,6 +217,24 @@ def user_stats_view(request):
         stats["projets_soutenus"] = mes_contributions.values("projet").distinct().count()
         stats["montant_total_contribue"] = sum(c.montant for c in mes_contributions)
     
+    # Stats pour ADMIN
+    if user.is_superuser or user.type_utilisateur == "admin":
+        from apps.projects.models import Projet
+        from apps.contributions.models import Contribution
+        
+        # Projets en attente de validation
+        stats["projets_en_attente"] = Projet.objects.filter(statut="en_attente").count()
+        
+        # Total utilisateurs
+        stats["total_utilisateurs"] = User.objects.filter(is_active=True).count()
+        
+        # Projets actifs (publiés)
+        stats["projets_actifs"] = Projet.objects.filter(statut="actif").count()
+        
+        # Montant total collecté sur la plateforme
+        toutes_contributions = Contribution.objects.filter(statut_paiement="valide")
+        stats["montant_total"] = sum(c.montant for c in toutes_contributions)
+    
     # Notifications non lues (pour tous)
     from apps.notifications.models import Notification
     stats["notifications_non_lues"] = Notification.objects.filter(
@@ -221,3 +244,35 @@ def user_stats_view(request):
     
     return Response(stats, status=status.HTTP_200_OK)
 
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_profile_type_view(request):
+    """
+    API pour permettre à un contributeur de changer son profil en porteur.
+    Seuls les contributeurs peuvent utiliser cet endpoint.
+    """
+    user = request.user
+    
+    # Vérifier que l'utilisateur est un contributeur
+    if user.type_utilisateur != "contributeur":
+        return Response(
+            {"error": "Seuls les contributeurs peuvent changer leur profil en porteur."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Changer le type d'utilisateur en porteur
+    user.type_utilisateur = "porteur"
+    user.save()
+    
+    return Response({
+        "message": "Félicitations ! Votre profil a été mis à jour. Vous êtes maintenant un porteur de projet.",
+        "type_utilisateur": user.type_utilisateur,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "type_utilisateur": user.type_utilisateur,
+        }
+    }, status=status.HTTP_200_OK)
