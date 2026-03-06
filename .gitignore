@@ -38,11 +38,13 @@ yarn-error.log
 # Heroku
 .heroku/
 
-# ==================================================
-# 🔍 Fichiers d'audit et de test local (à ne pas pousser)
-# ==================================================
-audit_diapalsen.sh
-audit_diapalsen.ps1
-audit_cli_*.txt
-DiapalSen_Audit.postman_collection.json
-DiapalSen_Audit_Checklist.md
+# Tests et Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# Logs
+logs/
+*.log

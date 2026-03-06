@@ -17,20 +17,27 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
 
-
 urlpatterns = [
+    # Admin
     path("admin/", admin.site.urls),
+    
+    # API endpoints
     path("api/users/", include("apps.users.urls")),
     path("api/projects/", include("apps.projects.urls")),
-    # 📘 Documentation API (Swagger + Redoc)
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/contributions/", include("apps.contributions.urls")),
+    path("api/interactions/", include("apps.interactions.urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
+    
+    # Swagger/OpenAPI Documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
         SpectacularSwaggerView.as_view(url_name="schema"),
@@ -38,3 +45,7 @@ urlpatterns = [
     ),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
+
+# Servir les fichiers media en développement
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

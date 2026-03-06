@@ -1,0 +1,34 @@
+{% extends 'emails/base.html' %}
+
+{% block title %}Contribution confirmée{% endblock %}
+
+{% block content %}
+<h2>✅ Votre contribution est confirmée !</h2>
+
+<p>Bonjour {{ contribution.contributeur.first_name }},</p>
+
+<p>Merci beaucoup ! Votre contribution au projet <strong>"{{ contribution.projet.titre }}"</strong> a été traitée avec succès.</p>
+
+<div style="background: #f0fdf4; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #22c55e;">
+    <h3>📋 Détails de votre contribution :</h3>
+    <ul>
+        <li><strong>Montant :</strong> {{ contribution.montant|floatformat:0 }} FCFA</li>
+        <li><strong>Référence :</strong> {{ contribution.reference_paiement }}</li>
+        <li><strong>Moyen de paiement :</strong> {{ contribution.get_moyen_paiement_display }}</li>
+        <li><strong>Date :</strong> {{ contribution.date_contribution|date:"d/m/Y à H:i" }}</li>
+    </ul>
+    {% if contribution.message_soutien %}
+    <p><strong>Votre message :</strong> "{{ contribution.message_soutien }}"</p>
+    {% endif %}
+</div>
+
+<div style="background: #f8fafc; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3>📊 Impact de votre contribution :</h3>
+    <p>Grâce à vous, le projet a maintenant collecté <strong>{{ contribution.projet.montant_collecte|floatformat:0 }} FCFA</strong> sur {{ contribution.projet.montant_objectif|floatformat:0 }} FCFA ({{ contribution.projet.pourcentage_atteint }}%).</p>
+    <p><strong>{{ contribution.projet.nombre_contributeurs }}</strong> contributeurs soutiennent ce projet !</p>
+</div>
+
+<a href="http://127.0.0.1:8000/projets/{{ contribution.projet.id }}" class="button">Voir le projet</a>
+
+<p>Merci de soutenir l'innovation sénégalaise ! 🚀</p>
+{% endblock %}

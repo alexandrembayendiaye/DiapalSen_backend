@@ -1,104 +1,126 @@
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
 
 
-# ============================================================
-# Gestionnaire d’utilisateurs : permet la création via email
-# ============================================================
-class UtilisateurManager(BaseUserManager):
-    use_in_migrations = True
+class User(AbstractUser):
+    """
+    Modèle User personnalisé pour DiapalSen
+    Étend AbstractUser avec les champs spécifiques du projet
+    """
 
-    def _create_user(self, email, password, **extra_fields):
-        """
-        Crée et enregistre un utilisateur avec l'email et le mot de passe donnés.
-        """
-        if not email:
-            raise ValueError("L'email est obligatoire.")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_user(self, email, password=None, **extra_fields):
-        """
-        Crée un utilisateur standard.
-        """
-        extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        """
-        Crée un superutilisateur (admin).
-        """
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Le superutilisateur doit avoir is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Le superutilisateur doit avoir is_superuser=True.")
-
-        return self._create_user(email, password, **extra_fields)
-
-
-# ============================================================
-# Modèle principal : Utilisateur
-# ============================================================
-class Utilisateur(AbstractUser):
-    # Suppression du champ username par défaut
-    username = None
-
-    # Identifiant principal
-    email = models.EmailField(_("adresse email"), unique=True)
-
-    # Informations personnelles
-    first_name = models.CharField(_("Prénom"), max_length=150)
-    last_name = models.CharField(_("Nom"), max_length=150)
-    date_de_naissance = models.DateField(_("Date de naissance"), null=True, blank=True)
-
-    numero_telephone = models.CharField(
-        _("Numéro de téléphone"),
-        max_length=20,
-        null=True,
-        blank=True,
-        validators=[RegexValidator(r"^[0-9+\- ]+$", "Numéro invalide.")],
-    )
-
-    adresse = models.CharField(_("Adresse"), max_length=255, null=True, blank=True)
-    ville = models.CharField(_("Ville"), max_length=100, null=True, blank=True)
-
-    # Rôle / Type d'utilisateur
-    TYPE_UTILISATEUR = [
-        ("standard", "Contributeur standard"),
+    # Choix pour le type d'utilisateur
+    TYPE_CHOICES = [
+        ("contributeur", "Contributeur"),
         ("porteur", "Porteur de projet"),
         ("admin", "Administrateur"),
     ]
+
+    # Choix pour les régions du Sénégal
+    REGION_CHOICES = [
+        ("dakar", "Dakar"),
+        ("thies", "Thiès"),
+        ("saint-louis", "Saint-Louis"),
+        ("diourbel", "Diourbel"),
+        ("louga", "Louga"),
+        ("fatick", "Fatick"),
+        ("kaolack", "Kaolack"),
+        ("kolda", "Kolda"),
+        ("matam", "Matam"),
+        ("tambacounda", "Tambacounda"),
+        ("kaffrine", "Kaffrine"),
+        ("kedougou", "Kédougou"),
+        ("sedhiou", "Sédhiou"),
+        ("ziguinchor", "Ziguinchor"),
+    ]
+
+    # Choix pour le statut du compte
+    STATUT_CHOICES = [
+        ("actif", "Actif"),
+        ("suspendu", "Suspendu"),
+        ("supprime", "Supprimé"),
+    ]
+
+    # Validateur pour le téléphone (format sénégalais)
+    phone_validator = RegexValidator(
+        regex=r"^\+221[0-9]{9}$|^[0-9]{9}$",
+        message="Le numéro de téléphone doit être au format sénégalais.",
+    )
+
+    # Champs personnalisés
+    telephone = models.CharField(
+        max_length=15,
+        validators=[phone_validator],
+        blank=True,
+        null=True,
+        help_text="Format: +221xxxxxxxxx ou xxxxxxxxx",
+    )
+
     type_utilisateur = models.CharField(
-        _("Type d'utilisateur"),
         max_length=20,
-        choices=TYPE_UTILISATEUR,
-        default="standard",
+        choices=TYPE_CHOICES,
+        default="contributeur",
+        help_text="Type de compte utilisateur",
     )
 
-    # Photo de profil (upload dans media/profiles/)
     photo_profil = models.ImageField(
-        _("Photo de profil"), upload_to="profiles/", null=True, blank=True
+        upload_to="profiles/",
+        blank=True,
+        null=True,
+        help_text="Photo de profil de l'utilisateur",
     )
 
-    # Champs obligatoires pour AbstractUser
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    biographie = models.TextField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Courte biographie de l'utilisateur",
+    )
 
-    # Lien vers le gestionnaire
-    objects = UtilisateurManager()  # type: ignore
+    region = models.CharField(
+        max_length=20,
+        choices=REGION_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Région de résidence",
+    )
 
+    ville = models.CharField(
+        max_length=100, blank=True, null=True, help_text="Ville ou commune de résidence"
+    )
+
+    date_derniere_connexion = models.DateTimeField(
+        blank=True, null=True, help_text="Date et heure de la dernière connexion"
+    )
+
+    statut_compte = models.CharField(
+        max_length=20,
+        choices=STATUT_CHOICES,
+        default="actif",
+        help_text="Statut du compte utilisateur",
+    )
+
+    # Métadonnées
     class Meta:
         verbose_name = "Utilisateur"
         verbose_name_plural = "Utilisateurs"
+        ordering = ["-date_joined"]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
+        return f"{self.get_full_name()} ({self.email})"
+
+    def get_full_name(self):
+        """Retourne le nom complet de l'utilisateur"""
+        return f"{self.first_name} {self.last_name}".strip() or self.username
+
+    @property
+    def is_contributeur(self):
+        return self.type_utilisateur == "contributeur"
+
+    @property
+    def is_porteur(self):
+        return self.type_utilisateur == "porteur"
+
+    @property
+    def is_admin_custom(self):
+        return self.type_utilisateur == "admin" or self.is_superuser
