@@ -1,39 +1,4 @@
 from rest_framework import serializers
-<<<<<<< HEAD
-from django.contrib.auth import get_user_model
-
-Utilisateur = get_user_model()
-
-
-# ============================================================
-# 1️⃣ Serializer d'inscription
-# ============================================================
-class InscriptionSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=6)
-
-    class Meta:
-        model = Utilisateur
-        fields = [
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "password",
-            "date_de_naissance",
-            "numero_telephone",
-            "adresse",
-            "ville",
-            "type_utilisateur",
-            "photo_profil",
-        ]
-
-    def create(self, validated_data):
-        """
-        Crée un utilisateur à partir des données validées.
-        """
-        password = validated_data.pop("password")
-        user = Utilisateur(**validated_data)
-=======
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from .models import User
@@ -86,32 +51,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop("password_confirm")
         password = validated_data.pop("password")
         user = User.objects.create_user(**validated_data)
->>>>>>> ancienne_version
         user.set_password(password)
         user.save()
         return user
 
 
-<<<<<<< HEAD
-# ============================================================
-# 2️⃣ Serializer de profil utilisateur
-# ============================================================
-class UtilisateurSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Utilisateur
-        fields = [
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "date_de_naissance",
-            "numero_telephone",
-            "adresse",
-            "ville",
-            "type_utilisateur",
-            "photo_profil",
-        ]
-=======
 class UserProfileSerializer(serializers.ModelSerializer):
     """Serializer pour le profil utilisateur (lecture/modification)"""
 
@@ -173,4 +117,3 @@ class UserLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Identifiants invalides.")
         else:
             raise serializers.ValidationError("Email et mot de passe requis.")
->>>>>>> ancienne_version
